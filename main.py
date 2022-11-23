@@ -8,8 +8,7 @@ class OpenTransportTaskError(Exception):
 class TransportTaskSolver:
     def __init__(self, supply, demand, cost_elements=None):
         if sum(supply) != sum(demand):
-            raise OpenTransportTaskError(
-                "Данная транспортная задача является открытой.\n Требования потребителей и ресурсы у поставщиков не сходятся.")
+            raise OpenTransportTaskError("Данная транспортная задача является открытой.\n Требования потребителей и ресурсы у поставщиков не сходятся.")
         self.supply = supply
         self.demand = demand
         self.cost_elements = cost_elements if cost_elements else None
