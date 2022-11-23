@@ -1,5 +1,5 @@
 from prettytable import PrettyTable
-
+from copy import deepcopy
 
 class OpenTransportTaskError(Exception):
     pass
@@ -18,12 +18,12 @@ class TransportTaskSolver:
         demand_copy = self.demand.copy()
         supply_copy = self.supply.copy()
 
-        bfs = [[] for _ in range(len(demand_copy) + 1)]
-        bfs[0] = ['x0'] + [i for i in supply_copy]
+        matrix = [[] for _ in range(len(demand_copy) + 1)]
+        matrix[0] = ['x0'] + [i for i in supply_copy]
         for i in range(1, len(demand_copy) + 1):
-            bfs[i] = [demand_copy[i - 1]] + ['-' for i in range(len(supply_copy))]
+            matrix[i] = [demand_copy[i - 1]] + ['-' for i in range(len(supply_copy))]
 
-        return bfs
+        return matrix
 
     @staticmethod
     def _generate_table(matrix):
@@ -33,14 +33,68 @@ class TransportTaskSolver:
         table.add_rows(result)
         return table
 
+    @staticmethod
+    def _find_min_pos(matrix):
+        i_pos, j_pos = 0, 0
+        c = 10 ** 8
+        for i in range(len(matrix)):
+            for j in range(len(matrix[0])):
+                if matrix[i][j] != 0 and matrix[i][j] < c:
+                    c = matrix[i][j]
+                    i_pos, j_pos = i, j
+        return i_pos, j_pos
+
+    @staticmethod
+    def _count_matrix_elements(matrix):
+        matrix_copy = deepcopy(matrix)
+        matrix_copy = matrix_copy[1:]
+
+        for i in matrix_copy:
+            i.pop(0)
+
+        count = 0
+        for i in range(len(matrix_copy)):
+            for j in range(len(matrix_copy[0])):
+                if matrix_copy[i][j] != '-':
+                    count += 1
+        return True if count == len(matrix_copy) + len(matrix_copy[0]) - 1 else False
+
     def least_cost(self):
-        """In Progress..."""
-        pass
+        demand_copy = self.demand.copy()
+        supply_copy = self.supply.copy()
+        cost_elements_copy = self.cost_elements.copy()
+
+        demand_length = len(demand_copy)
+        supply_length = len(supply_copy)
+        result_matrix = self._generate_matrix()
+        price_str, price = '', 0
+
+        while True:
+            cost_min = [['-' for _ in range(demand_length)] for _ in range(supply_length)]
+            for i in range(demand_length):
+                for j in range(supply_length):
+                    cost_min[i][j] = cost_elements_copy[i][j] * min(demand_copy[i], supply_copy[j])
+
+            i, j = self._find_min_pos(cost_min)
+            res_el = int(min(demand_copy[i], supply_copy[j]))
+            result_matrix[i + 1][j + 1] = res_el
+            price_str += f"+{str(cost_min[i][j])}*{cost_elements_copy[i][j]}"
+            price += int(cost_min[i][j])
+            demand_copy[i] -= res_el
+            supply_copy[j] -= res_el
+
+            if self._count_matrix_elements(result_matrix):
+                break
+
+        print(self._generate_table(result_matrix))
+
+        return f"Стоимость данного плана составляет: {price_str[1:]} = {price}"
+
 
     def north_west_corner(self):
         demand_copy = self.demand.copy()
         supply_copy = self.supply.copy()
-        bfs = self._generate_matrix()
+        result_matrix = self._generate_matrix()
 
         i, j = 0, 0
         counter = 0
@@ -48,30 +102,30 @@ class TransportTaskSolver:
             min_el = min(supply_copy[i], demand_copy[j])
             supply_copy[i] -= min_el
             demand_copy[j] -= min_el
-            bfs[j + 1][i + 1] = min_el
-            if supply_copy[i] == 0 and i < len(self.supply) - 1:
+            result_matrix[j + 1][i + 1] = min_el
+            if supply_copy[i] == 0:
                 i += 1
-            elif demand_copy[j] == 0 and j < len(self.demand) - 1:
+            elif demand_copy[j] == 0:
                 j += 1
             counter += 1
 
-        print(self._generate_table(bfs))
+        print(self._generate_table(result_matrix))
 
         if self.cost_elements:
-            result = bfs[1:]
+            result_matrix = result_matrix[1:]
 
-            for i in result:
+            for i in result_matrix:
                 i.pop(0)
 
-            string = ''
-            cost = 0
-            for i in range(len(result)):
-                for j in range(len(result[i])):
-                    if result[i][j] != '-':
-                        cost += self.cost_elements[i][j] * result[i][j]
-                        string += f'+{str(self.cost_elements[i][j])}*{str(result[i][j])}'
+            price_str = ''
+            price = 0
+            for i in range(len(result_matrix)):
+                for j in range(len(result_matrix[i])):
+                    if result_matrix[i][j] != '-':
+                        price += self.cost_elements[i][j] * result_matrix[i][j]
+                        price_str += f'+{str(self.cost_elements[i][j])}*{str(result_matrix[i][j])}'
 
-            return f"Стоимость данного плана составляет: {string[1:]} = {cost}"
+            return f"Стоимость данного плана составляет: {price_str[1:]} = {price}"
 
         else:
             return "Стоимость данного плана невозможно рассчитать, таблица стоимостей не указана."
