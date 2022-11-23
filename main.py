@@ -1,5 +1,6 @@
 from prettytable import PrettyTable
 from copy import deepcopy
+import random
 
 class OpenTransportTaskError(Exception):
     pass
@@ -26,10 +27,20 @@ class TransportTaskSolver:
 
     @staticmethod
     def _generate_table(matrix):
-        first_elements = matrix[0]
-        result = matrix[1:]
-        table = PrettyTable(first_elements)
-        table.add_rows(result)
+        for el in range(len(matrix[0])):
+            if matrix[0].count(matrix[0][el]) > 1:
+                matrix[0][el] = str(matrix[0][el]) + random.choice(['i', 'j', 'k', 'z', 'x', 'c'])
+
+        result = matrix[0]
+        matrix = matrix[1:]
+
+        for i in range(len(matrix)):
+            for j in range(len(matrix[0])):
+                if matrix[i][j] == 0:
+                    matrix[i][j] = '-'
+
+        table = PrettyTable(result)
+        table.add_rows(matrix)
         return table
 
     @staticmethod
@@ -69,7 +80,7 @@ class TransportTaskSolver:
         price_str, price = '', 0
 
         while True:
-            cost_min = [['-' for _ in range(demand_length)] for _ in range(supply_length)]
+            cost_min = [['-' for _ in range(supply_length)] for _ in range(demand_length)]
             for i in range(demand_length):
                 for j in range(supply_length):
                     cost_min[i][j] = cost_elements_copy[i][j] * min(demand_copy[i], supply_copy[j])
@@ -133,11 +144,12 @@ class TransportTaskSolver:
 def main():
     # supply = list(map(int, input("Введите поставщиков: ").split()))
     # demand = list(map(int, input("Введите потребителей: ").split()))
-    supply = [120, 50, 130]
-    demand = [100, 100, 100]
-    cost_elements = [[2, 5, 1],
-                     [3, 2, 6],
-                     [7, 2, 5]]
+    supply = [100, 300, 300]
+    demand = [100, 150, 250, 200]
+    cost_elements = [[5, 2, 5],
+                     [6, 1, 7],
+                     [2, 5, 3],
+                     [1, 7, 4]]
     # cost_elements = None
 
     prompt = input("Какой метод?(1 - мин. эл.; 2 - с.з. угол): ")
